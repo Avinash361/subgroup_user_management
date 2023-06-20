@@ -112,26 +112,38 @@ class Subgroup_Course_Management_Public
 		$users = learndash_get_groups_users($group_id);
 
 		if (learndash_is_group_leader_user($current_user)) {
+
+			$content .=  '<table>';
+			$content .= 	'<tr>';
+			$content .= 		'<th>Username</th>';
+			$content .= 		'<th>Course</th>';
+			$content .= 		'<th>Action</th>';
+			$content .= 	'</tr>';
+
 			foreach ($users as $user) {
 				$group_user_ids = learndash_get_groups_user_ids($group_id);
-				if (!empty($group_user_ids) && in_array($user->ID, $group_user_ids, true)) {
-					$atts = array(
-						'user_id' => $user->ID,
-						'group_id' => $group_id,
-					);
-					$atts = apply_filters('learndash_group_administration_course_info_atts', $atts, get_user_by('id', $user->ID));
+				if (!empty($group_user_ids)) {
 
-					$content .= '<h3>' . $user->user_login . '</h3>';
+					$content .= '<tr>';
+					$content .= '<td>' . $user->user_login. '</td>';
+
 					$courses = learndash_user_get_enrolled_courses($user->ID, $course_query_args = array(), false);
-
+					$content .= '<form method="post">';
 					foreach ($courses as $course_id) {
-						$content .= $this->display_course_lessons_and_topics($course_id, $user->ID);
+						$content .= '<td>'. $this->display_course_lessons_and_topics($course_id, $user->ID).'</td>';
 					}
+					// $content .= '<td>'.$user->user_email.'</td>';
+					$content .= '<td><button type="submit" name="update_progression" value="' . $user->ID . '">Update</button></td>';
+					$content .= '</form>';
+
+					$content .= '</tr>';
 					// Handle progression updates
 					$this->handle_update_progression($user->ID, $course_id);
 					$content .= '<br>';
 				}
 			}
+
+			$content .= '</table>';
 		}
 
 		return $content;
@@ -158,12 +170,11 @@ class Subgroup_Course_Management_Public
 
 		// Loop through the lessons and display their titles
 		if ($lessons_list) {
-			$content .= '<form method="post">';
+			
 			foreach ($lessons_list as $lesson) {
 				$content .= $this->display_lesson_and_topics($lesson, $user_id, $course_id);
 			}
-			$content .= '<button type="submit" name="update_progression" value="' . $user_id . '">Update</button>';
-			$content .= '</form>';
+
 		}
 
 		return $content;
@@ -173,7 +184,7 @@ class Subgroup_Course_Management_Public
 	{
 		$content = '';
 
-		$content .= '<span class="list-arrow"></span>';
+		$content .= '<span class="list-arrow">></span>';
 		$checkbox_html = '<input type="checkbox" name="lesson_checkbox[]" value="' . $lesson['id'] . '"';
 		if (learndash_is_lesson_complete($user_id, $lesson['id'], $course_id)) {
 			$checkbox_html .= ' checked';
@@ -183,9 +194,11 @@ class Subgroup_Course_Management_Public
 
 		$topic_list = learndash_get_topic_list($lesson['id']);
 		if ($topic_list) {
+			$content .= '<div class="topic-container">';
 			foreach ($topic_list as $topic) {
 				$content .= $this->display_topic($topic, $user_id, $course_id);
 			}
+			$content .= '</div>';
 		}
 
 		return $content;
@@ -208,13 +221,39 @@ class Subgroup_Course_Management_Public
 
 	public function handle_update_progression($user_id, $course_id)
 	{
-		
+
 		if (isset($_POST['update_progression'])) {
 			$selected_topics = isset($_POST['lesson_checkbox']) ? $_POST['lesson_checkbox'] : array();
-		
+
 			foreach ($selected_topics as $topic_id) {
 				learndash_process_mark_complete($_POST['update_progression'], $topic_id, false, $course_id);
 			}
 		}
 	}
 }
+?>
+
+<style>
+	.topic-container {
+		display: none;
+		margin-left: 20px;
+	}
+</style>
+
+<script>
+	document.addEventListener("DOMContentLoaded", function() {
+		var arrows = document.querySelectorAll(".list-arrow");
+
+		arrows.forEach(function(arrow) {
+			arrow.addEventListener("click", function() {
+				var topicContainer = this.nextElementSibling.nextElementSibling.nextElementSibling;
+
+				if (topicContainer.style.display === "none") {
+					topicContainer.style.display = "block";
+				} else {
+					topicContainer.style.display = "none";
+				}
+			});
+		});
+	});
+</script>
