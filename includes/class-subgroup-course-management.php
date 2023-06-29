@@ -27,7 +27,8 @@
  * @subpackage Subgroup_Course_Management/includes
  * @author     Avinash Jha <avinash.jha@wisdmlabs.com>
  */
-class Subgroup_Course_Management {
+class Subgroup_Course_Management
+{
 
 	/**
 	 * The loader that's responsible for maintaining and registering all hooks that power
@@ -66,8 +67,9 @@ class Subgroup_Course_Management {
 	 *
 	 * @since    1.0.0
 	 */
-	public function __construct() {
-		if ( defined( 'SUBGROUP_COURSE_MANAGEMENT_VERSION' ) ) {
+	public function __construct()
+	{
+		if (defined('SUBGROUP_COURSE_MANAGEMENT_VERSION')) {
 			$this->version = SUBGROUP_COURSE_MANAGEMENT_VERSION;
 		} else {
 			$this->version = '1.0.0';
@@ -78,7 +80,6 @@ class Subgroup_Course_Management {
 		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
-
 	}
 
 	/**
@@ -97,33 +98,33 @@ class Subgroup_Course_Management {
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	private function load_dependencies() {
+	private function load_dependencies()
+	{
 
 		/**
 		 * The class responsible for orchestrating the actions and filters of the
 		 * core plugin.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-subgroup-course-management-loader.php';
+		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-subgroup-course-management-loader.php';
 
 		/**
 		 * The class responsible for defining internationalization functionality
 		 * of the plugin.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-subgroup-course-management-i18n.php';
+		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-subgroup-course-management-i18n.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-subgroup-course-management-admin.php';
+		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/class-subgroup-course-management-admin.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the public-facing
 		 * side of the site.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-subgroup-course-management-public.php';
+		require_once plugin_dir_path(dirname(__FILE__)) . 'public/class-subgroup-course-management-public.php';
 
 		$this->loader = new Subgroup_Course_Management_Loader();
-
 	}
 
 	/**
@@ -135,12 +136,12 @@ class Subgroup_Course_Management {
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	private function set_locale() {
+	private function set_locale()
+	{
 
 		$plugin_i18n = new Subgroup_Course_Management_i18n();
 
-		$this->loader->add_action( 'plugins_loaded', $plugin_i18n, 'load_plugin_textdomain' );
-
+		$this->loader->add_action('plugins_loaded', $plugin_i18n, 'load_plugin_textdomain');
 	}
 
 	/**
@@ -150,13 +151,13 @@ class Subgroup_Course_Management {
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	private function define_admin_hooks() {
+	private function define_admin_hooks()
+	{
 
-		$plugin_admin = new Subgroup_Course_Management_Admin( $this->get_plugin_name(), $this->get_version() );
+		$plugin_admin = new Subgroup_Course_Management_Admin($this->get_plugin_name(), $this->get_version());
 
-		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
-		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
-
+		$this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
+		$this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
 	}
 
 	/**
@@ -166,13 +167,23 @@ class Subgroup_Course_Management {
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	private function define_public_hooks() {
+	private function define_public_hooks()
+	{
 
-		$plugin_public = new Subgroup_Course_Management_Public( $this->get_plugin_name(), $this->get_version() );
+		$plugin_public = new Subgroup_Course_Management_Public($this->get_plugin_name(), $this->get_version());
 
-		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
-		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
+		$this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
+		$this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts');
 		$this->loader->add_action('init', $plugin_public, 'register_shortcodes');
+		$this->loader->add_action('wp_ajax_fetch_group_users', $plugin_public, 'fetch_group_users');
+		$this->loader->add_action('wp_ajax_nopriv_fetch_group_users', $plugin_public, 'fetch_group_users');
+		$this->loader->add_filter('ldgr_filter_group_registration_tab_headers', $plugin_public, 'add_custom_group_registration_tab', 10, 3);
+		$this->loader->add_filter('ldgr_filter_group_registration_tab_contents', $plugin_public, 'add_custom_group_registration_tab_content', 10, 3);
+		
+		// Ajax Request
+		$this->loader->add_action('wp_ajax_ld_fetch_student_report',$plugin_public, 'ld_fetch_student_report_callback');
+		$this->loader->add_action('wp_ajax_ld_fetch_student_course_report',$plugin_public, 'ld_fetch_student_course_report_callback');
+		$this->loader->add_action('wp_ajax_ld_update_student_course_report',$plugin_public, 'ld_update_student_course_report_callback');
 
 	}
 
@@ -181,7 +192,8 @@ class Subgroup_Course_Management {
 	 *
 	 * @since    1.0.0
 	 */
-	public function run() {
+	public function run()
+	{
 		$this->loader->run();
 	}
 
@@ -192,7 +204,8 @@ class Subgroup_Course_Management {
 	 * @since     1.0.0
 	 * @return    string    The name of the plugin.
 	 */
-	public function get_plugin_name() {
+	public function get_plugin_name()
+	{
 		return $this->plugin_name;
 	}
 
@@ -202,7 +215,8 @@ class Subgroup_Course_Management {
 	 * @since     1.0.0
 	 * @return    Subgroup_Course_Management_Loader    Orchestrates the hooks of the plugin.
 	 */
-	public function get_loader() {
+	public function get_loader()
+	{
 		return $this->loader;
 	}
 
@@ -212,8 +226,8 @@ class Subgroup_Course_Management {
 	 * @since     1.0.0
 	 * @return    string    The version number of the plugin.
 	 */
-	public function get_version() {
+	public function get_version()
+	{
 		return $this->version;
 	}
-
 }

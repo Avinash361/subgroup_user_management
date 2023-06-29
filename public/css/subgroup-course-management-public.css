@@ -2,3 +2,26 @@
  * All of the CSS for your public-facing functionality should be
  * included in this file.
  */
+#ld_course_id {
+	margin-bottom: 15px;
+}
+
+.lesson-container {
+	cursor: pointer;
+}
+
+.list-arrow {
+	margin-right: 5px;
+	cursor: pointer;
+}
+
+.topic-container {
+	display: none;
+	margin-left: 20px;
+	cursor: pointer;
+}
+
+#table-top {
+	display: flex;
+	justify-content: space-between;
+}
