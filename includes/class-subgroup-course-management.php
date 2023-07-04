@@ -181,9 +181,9 @@ class Subgroup_Course_Management
 		$this->loader->add_filter('ldgr_filter_group_registration_tab_contents', $plugin_public, 'add_custom_group_registration_tab_content', 10, 3);
 		
 		// Ajax Request
-		$this->loader->add_action('wp_ajax_ld_fetch_student_report',$plugin_public, 'ld_fetch_student_report_callback');
-		$this->loader->add_action('wp_ajax_ld_fetch_student_course_report',$plugin_public, 'ld_fetch_student_course_report_callback');
-		$this->loader->add_action('wp_ajax_ld_update_student_course_report',$plugin_public, 'ld_update_student_course_report_callback');
+		$this->loader->add_action('wp_ajax_ld_fetch_student_report',$plugin_public, 'ld_fetch_student_report');
+		$this->loader->add_action('wp_ajax_ld_fetch_student_course_report',$plugin_public, 'ld_fetch_student_course_report');
+		$this->loader->add_action('wp_ajax_ld_update_student_course_report',$plugin_public, 'ld_update_student_course_report');
 
 	}
 

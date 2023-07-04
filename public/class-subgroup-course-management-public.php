@@ -20,6 +20,8 @@
  * @subpackage Subgroup_Course_Management/public
  * @author     Avinash Jha <avinash.jha@wisdmlabs.com>
  */
+require_once 'ld-helper.php';
+
 class Subgroup_Course_Management_Public
 {
 
@@ -48,11 +50,15 @@ class Subgroup_Course_Management_Public
 	 * @param      string    $plugin_name       The name of the plugin.
 	 * @param      string    $version    The version of this plugin.
 	 */
+
+	private $helper;
+
 	public function __construct($plugin_name, $version)
 	{
 
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
+		$this->helper = new Subgroup_Course_Management_Helper_Function();
 	}
 
 	/**
@@ -79,11 +85,6 @@ class Subgroup_Course_Management_Public
 
 		wp_enqueue_script($this->plugin_name, plugin_dir_url(__FILE__) . 'js/subgroup-course-management-public.js', array('jquery'), $this->version, false);
 	}
-	public function register_shortcodes()
-	{
-		add_shortcode('wsdm_subgroup_dashboard', array($this, 'wsdm_subgroup_dashboard_callback'));
-	}
-
 	function add_custom_group_registration_tab($tab_headers, $group_id)
 	{
 		// Add a new tab
@@ -107,290 +108,129 @@ class Subgroup_Course_Management_Public
 		return $tab_contents;
 	}
 
-
-	function ld_fetch_student_report_callback()
+	public function register_shortcodes()
 	{
-		if (isset($_POST['course_id'])) {
+		add_shortcode('wsdm_subgroup_dashboard', array($this, 'wsdm_subgroup_dashboard_callback'));
+	}
+
+	public function wsdm_subgroup_dashboard_callback($atts = [], $content = null)
+	{
+		$current_user = get_current_user_id();
+		$group_id =  $this->helper->get_the_group_id($current_user);
+
+		if (learndash_is_group_leader_user($current_user)) {
+
+			$content .= '<div id="table-top">';
+			$content .= '<div>' . $this->helper->selectCourse($group_id) . '</div>';
+			$content .= '<div>' . $this->helper->selectEntries($group_id) . '</div>';
+			$content .= '</div>';
+			$content .=  '<div id="report_container"><div>';
+		}
+
+		return $content;
+	}
+
+	function ld_fetch_student_report()
+	{
+
+		if (isset($_POST['course_id']) && isset($_POST['entries'])) {
 			$course_id = $_POST['course_id'];
 			$entries = $_POST['entries'];
-			echo $this->get_users_from_course($course_id, $entries);
+
+			echo  $this->helper->get_users_from_course($course_id, $entries);
 		} else {
-			echo '<p>Invalid course ID.</p>';
+			echo '<p>Invalid course ID or No of Entries.</p>';
 		}
 		wp_die(); // Terminate the script
 	}
-	function ld_fetch_student_course_report_callback()
+	function ld_fetch_student_course_report()
 	{
+
 		if (isset($_POST['course_id']) && isset($_POST['user_id'])) {
 			$course_id = $_POST['course_id'];
 			$user_id = $_POST['user_id'];
-			echo  $this->display_course_lessons_and_topics($course_id, $user_id);
+
+			echo   $this->helper->display_course_lessons_and_topics($course_id, $user_id);
 		} else {
-			echo '<p>Invalid course ID.</p>';
+			wp_send_json_error('Invalid course ID or user ID.');
 		}
 		wp_die();
 	}
-	function ld_update_student_course_report_callback()
+	function ld_update_student_course_report()
 	{
 		if (isset($_POST['course_id']) && isset($_POST['user_id'])) {
 			$course_id = $_POST['course_id'];
 			$user_id = $_POST['user_id'];
 			$checked_values = $_POST['checked_values'];
-			$all_lessons = learndash_get_course_lessons_list($course_id, $user_id,  $query_args = array());
-
-			foreach ($all_lessons as $lesson) {
-				$all_topics = learndash_get_topic_list($lesson['id'],  $course_id);
-				foreach ($all_topics as $topic) {
-					learndash_process_mark_incomplete($user_id, $course_id, $topic->ID, false);
-				}
+			$unchecked_values = $_POST['unchecked_values'];
+			$entries = $_POST['entries'];
+			
+			foreach ($unchecked_values as $topic_id) {
+				learndash_process_mark_incomplete($user_id, $course_id, $topic_id, false);
+				$this->mark_quiz_incomplete($topic_id, $user_id);
 			}
 
 			foreach ($checked_values as $topic_id) {
 				learndash_process_mark_complete($user_id, $topic_id, false, $course_id);
+				$this->mark_quiz_complete($topic_id, $user_id);
 			}
-			echo $this->get_users_from_course($course_id);
+
+			echo  $this->helper->get_users_from_course($course_id, $entries);
 		} else {
-			echo '<p>Invalid course ID.</p>';
+			wp_send_json_error('Invalid course ID or user ID.');
 		}
 		wp_die();
 	}
-	function learndash_mark_quiz_complete($user_id, $quiz_id)
+	function mark_quiz_complete($quiz_id, $user_id)
 	{
-		// Check if LearnDash is active and available
-		if (class_exists('SFWD_LMS')) {
-			// Mark the quiz as complete
-			$result = learndash_process_mark_complete($user_id, $quiz_id);
+		// Get the user meta for quiz progress
+		$quiz_progress = get_user_meta($user_id, '_sfwd-quizzes', true);
 
-			if ($result) {
-				return true;
-			}
+		if (empty($quiz_progress)) {
+			$quiz_progress = [];
 		}
 
-		return false;
-	}
-	function get_users_from_course($course_id, $entries = 3)
-	{
-		$current_user = get_current_user_id();
-		$group_id = $this->get_the_group_id($current_user);
-		$users = learndash_get_groups_users($group_id);
-		$content = '<table>
-		<thead>
-		<tr role="row">
-		<th class="details-control sorting_disabled" rowspan="1" colspan="1" aria-label="" style="width: 10%;"></th>
-		<th class="dt-body-left name sorting_disabled" rowspan="1" colspan="1" aria-label="Name">Name</th>
-		<th class="dt-body-left email sorting_disabled" rowspan="1" colspan="1" aria-label="Email ID">Email ID</th>
-		<th class="dt-body-center dt-head-left course-progress sorting_disabled" rowspan="1" colspan="1" aria-label="Course Progress">Course Progress</th>
-		<th class="dt-body-left action sorting_disabled" rowspan="1" colspan="1" aria-label="action">Action</th>
-		</tr>
-		</thead>
-		<tbody>';
-		$count = 0;
-		foreach ($users as $user) {
-
-			if ($count >= $entries) {
+		// Check if the quiz is already marked as completed
+		$is_completed = false;
+		foreach ($quiz_progress as &$quiz_data) {
+			if ($quiz_data['quiz'] == $quiz_id) {
+				$quiz_data['pass'] = true; // Mark the quiz as completed
+				$is_completed = true;
 				break;
 			}
-			$count++;
+		}
 
-			$group_user_ids = learndash_get_groups_user_ids($group_id);
-			$total_steps     = learndash_course_get_steps_count($course_id);
-			$completed_steps = learndash_course_get_completed_steps($user->ID, $course_id);
+		// If the quiz is not already marked as completed, add it to the user meta
+		if (!$is_completed) {
+			$new_quiz_data = [
+				'quiz'       => $quiz_id,
+				'score'      => 0,
+				'count'      => 0,
+				'pass'       => true, // Mark the quiz as completed
+				'time'       => time(),
+				'percentage' => 0,
+			];
 
+			$quiz_progress[] = $new_quiz_data;
+		}
 
-			if (!empty($group_user_ids)) {
-				$content .= '<tr>
-				<td class="details-control" data-title="" >
-					<span class="dashicons dashicons-arrow-right-alt2 course-dashicons" data-user-id="' . $user->ID . '" data-course-id="' . $course_id . '"></span>
-				</td>
-							<td>' . $user->user_login . '</td>
-							<td>' . $user->user_email . '</td>
-							<td> ' . $completed_steps . ' / ' . $total_steps . ' steps completed</td>
-							<td><button name="view_course" value="" class="view-student-course"  data-user-id="' . $user->ID . '" data-course-id="' . $course_id . '">View Course</button></td>
-							</tr>
-							<tr>
-							<td colspan="5">
-								<div class="flip wdm_course_report">
-									
-								</div>
-							</td>
-							</tr>';
+		// Update the user meta with the updated quiz progress
+		update_user_meta($user_id, '_sfwd-quizzes', $quiz_progress);
+	}
+	function mark_quiz_incomplete($quiz_id, $user_id)
+	{
+		// Get the user meta for quiz progress
+		$quiz_progress = get_user_meta($user_id, '_sfwd-quizzes', true);
+
+		// Check if the quiz is marked as completed and update the pass status
+		foreach ($quiz_progress as &$quiz_data) {
+			if ($quiz_data['quiz'] == $quiz_id) {
+				$quiz_data['pass'] = false; // Mark the quiz as uncompleted
+				break;
 			}
 		}
-		$content .= '</tbody></table>';
-		return $content;
-	}
 
-
-
-	public function wsdm_subgroup_dashboard_callback($atts = [], $content = null)
-	{
-		$current_user = get_current_user_id();
-		$group_id = $this->get_the_group_id($current_user);
-		$users = learndash_get_groups_users($group_id);
-
-		if (learndash_is_group_leader_user($current_user)) {
-			$content.='<div id="table-top">';
-			$content .= '<div>'.$this->selectCourse($group_id).'</div>';
-			$content .= '<div>'.$this->selectEntries($group_id).'</div>';
-			$content.='</div>';
-			$content .=  '<div id="report_container">
-		<table>
-		<thead>
-		<tr role="row">
-		<th class="details-control sorting_disabled" rowspan="1" colspan="1" aria-label="" style="width: 10%;"></th>
-		<th class="dt-body-left name sorting_disabled" rowspan="1" colspan="1" aria-label="Name">Name</th>
-		<th class="dt-body-left email sorting_disabled" rowspan="1" colspan="1" aria-label="Email ID">Email ID</th>
-		<th class="dt-body-center dt-head-left course-progress sorting_disabled" rowspan="1" colspan="1" aria-label="Course Progress">Course Progress</th>
-		<th class="dt-body-left action sorting_disabled" rowspan="1" colspan="1" aria-label="action">Action</th>
-		</tr>
-		</thead>
-		</table>
-			<div>';
-		}
-
-		return $content;
-	}
-	private function selectCourse($group_id)
-	{
-		$group_courses = learndash_group_enrolled_courses($group_id);
-		$group_courses = apply_filters('ldgr_filter_group_course_list', $group_courses, $group_id);
-		$html = '<select id="ld_course_id" name="ld_course_id">';
-		foreach ($group_courses as $group_course) {
-			$demo_title   = get_post($group_course);
-			$course_title = $demo_title->post_title;
-			$html .= '<option value="' . esc_html($group_course) . '" title="' . esc_attr($course_title) . '">' . esc_html(mb_strimwidth(esc_html($course_title), 0, 20, '...')) . '</option>';
-		}
-		$html .= '</select>
-		
-		<input
-			type="button"
-			id="show_report_button"
-			class="ldgr-bg-color"
-			name="show_report_button"
-			value="' .
-			esc_html(
-				apply_filters(
-					'wdm_ldgr_show_report_button_label',
-					__('Show Report', 'wdm_ld_group')
-				)
-			) .
-			'" />';
-
-		return $html;
-	}
-	private function selectEntries($group_id)
-	{
-		$entries = array(1, 2, 4);
-		$html = 'Select <select id="entries" name="entries">';
-		foreach ($entries as $item) {
-			$html .= '<option value="' . esc_attr($item)  . '">' . esc_html($item)  . '</option>';
-		}
-		$html .= '</select> Entries';
-
-		return $html;
-	}
-
-	private function get_the_group_id($cuurent_user)
-	{
-		// Code to generate shortcode output...
-		$group_ids = learndash_get_administrators_group_ids($cuurent_user);
-		foreach ($group_ids as $id) {
-			return $id;
-		}
-	}
-
-	private function display_course_lessons_and_topics($course_id, $user_id)
-	{
-		$content = '';
-
-		$lessons_args = array(
-			'order' => 'ASC', // Sort the lessons in ascending order
-			'posts_per_page' => -1, // Retrieve all lessons
-		);
-
-		// Retrieve the lessons for the course
-		$lessons_list = learndash_get_course_lessons_list($course_id, $user_id, $lessons_args);
-
-		// Loop through the lessons and display their titles
-		if ($lessons_list) {
-
-			foreach ($lessons_list as $lesson) {
-				$content .= '<div class="lesson-container">';
-				$content .= $this->display_lesson_and_topics($lesson, $user_id, $course_id);
-				$content .= '</div>';
-			}
-		}
-		$content .= $this->display_quizes($course_id, $user_id);
-		$content .= '<div><button name="update_progression" value="" class="student-course-update"data-user-id="' . $user_id . '" data-course-id="' . $course_id . '" >Update</button></div>';
-		return $content;
-	}
-
-	private function display_lesson_and_topics($lesson, $user_id, $course_id)
-	{
-	
-		$content ='<i class=" list-arrow fas fa-angle-double-right"></i>';
-		$checkbox_html = '<input type="checkbox" name="lesson_checkbox[]" value="' . $lesson['id'] . '" class="lesson-checkbox"';
-		if (learndash_is_lesson_complete($user_id, $lesson['id'], $course_id)) {
-			$checkbox_html .= ' checked';
-		}
-		$checkbox_html .= '>';
-		$content .= $checkbox_html . $lesson['post']->post_title . '<br>';
-
-		$topic_list = learndash_get_topic_list($lesson['id']);
-		if ($topic_list) {
-			$content .= '<div class="topic-container">';
-			foreach ($topic_list as $topic) {
-				$content .= $this->display_topic($topic, $user_id, $course_id);
-			}
-			$content .= '</div>';
-		}
-
-		return $content;
-	}
-
-	private function display_topic($topic, $user_id, $course_id)
-	{
-		$content = '';
-
-		$content .= "&nbsp&nbsp";
-		$checkbox_html = '<input type="checkbox" name="lesson_checkbox[]" value="' . $topic->ID . '" data-user-id="' . $user_id . '" class="topic-checkbox"';
-		if (learndash_is_topic_complete($user_id, $topic->ID, $course_id)) {
-			$checkbox_html .= ' checked';
-		}
-		$checkbox_html .= '>';
-		$content .= $checkbox_html . $topic->post_title . '<br>';
-
-
-		return $content;
-	}
-	private function display_quizes($course_id, $user_id)
-	{
-		$content = '';
-
-		$quiz_list = learndash_get_course_quiz_list($course_id,   $user_id);
-		if ($quiz_list) {
-			$content .= '<div class="quiz-container">';
-			foreach ($quiz_list as $quiz) {
-				$content .= $this->display_quiz($quiz, $user_id, $course_id);
-			}
-			$content .= '</div>';
-		}
-		return $content;
-	}
-
-	private function display_quiz($quiz, $user_id, $course_id)
-	{
-		$content = '';
-
-		$content .= "&nbsp&nbsp&nbsp";
-		$checkbox_html = '<input type="checkbox" name="lesson_checkbox[]" value="' . $quiz['post']->ID . '" data-user-id="' . $user_id . '" class="lesson-checkbox"';
-		if (learndash_is_quiz_complete($user_id, $quiz['post']->ID, $course_id)) {
-			$checkbox_html .= ' checked';
-		}
-		$checkbox_html .= '>';
-		$content .= $checkbox_html . $quiz['post']->post_title . '  <br>';
-
-
-		return $content;
+		// Update the user meta with the updated quiz progress
+		update_user_meta($user_id, '_sfwd-quizzes', $quiz_progress);
 	}
 }

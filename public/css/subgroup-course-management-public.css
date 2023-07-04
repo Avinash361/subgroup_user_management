@@ -2,10 +2,13 @@
  * All of the CSS for your public-facing functionality should be
  * included in this file.
  */
+
 #ld_course_id {
 	margin-bottom: 15px;
 }
-
+#show_report_button{
+	border-radius: unset;
+}
 .lesson-container {
 	cursor: pointer;
 }
@@ -25,3 +28,41 @@
 	display: flex;
 	justify-content: space-between;
 }
+
+center div{ 
+	display: block; 
+	position: absolute; 
+	width: 10px; 
+	height: 10px; 
+	left: calc(50% - 1em); 
+	border-radius: 1em; 
+	transform-origin: 1em 2em; 
+	animation: rotate; 
+	animation-iteration-count: infinite; 
+	animation-duration: 1.6s; 
+} 
+
+@keyframes rotate { 
+	  0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); } 
+} 
+.d1 { 
+	animation-delay: 0.1s; 
+	background-color: rgb(0, 0, 0); 
+} 
+.d2 { 
+	animation-delay: 0.2s; 
+	background-color: rgb(0, 0, 0); 
+} 
+.d3 { 
+	animation-delay: 0.3s; 
+	background-color: rgb(0, 0, 0); 
+} 
+.d4 { 
+	animation-delay: 0.4s; 
+	background-color: rgb(0, 0, 0); 
+} 
+.d5 { 
+	animation-delay: 0.5s; 
+	background-color: rgb(0, 0, 0); 
+} 

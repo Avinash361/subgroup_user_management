@@ -34,7 +34,7 @@
 	jQuery(document).ready(function ($) {
 		let courseID = $('#ld_course_id').val();
 		let entries = $('#entries').val();
-		fetchStudentReport(courseID,entries);
+		fetchStudentReport(courseID, entries);
 
 
 
@@ -42,30 +42,32 @@
 			let courseID = $('#ld_course_id').val();
 			let entries = $('#entries').val();
 
-			fetchStudentReport(courseID,entries);
+			fetchStudentReport(courseID, entries);
 		})
 		//Save custom fields value from frontend
 		$('#show_report_button').on('click', function () {
 			var courseID = $('#ld_course_id').val();
+			let entries = $('#entries').val();
+
 			if (courseID) {
-				fetchStudentReport(courseID);
+				fetchStudentReport(courseID, entries);
 			} else {
 				alert('Please select a course.');
 			}
 		});
 
-		function fetchStudentReport(courseID,entries) {
+		function fetchStudentReport(courseID, entries) {
 			$.ajax({
 				url: '/wp-admin/admin-ajax.php',
 				type: 'POST',
 				data: {
 					action: 'ld_fetch_student_report',
 					course_id: courseID,
-					entries:entries
+					entries: entries
 				},
 				beforeSend: function () {
 					// Display a loading spinner or message
-					$('#report_container').html('Loading...');
+					$('#report_container').html('<center><div class="d1"></div><div class="d2"></div><div class="d3"></div><div class="d4"></div><div class="d5"></div> </center > ');
 
 				},
 				success: function (response) {
@@ -109,7 +111,7 @@
 				},
 				beforeSend: function () {
 					// Display a loading spinner or message
-					reportContainer.html('Loading...');
+					reportContainer.html('<center><div class="d1"></div><div class="d2"></div><div class="d3"></div><div class="d4"></div><div class="d5"></div> </center > ');
 				},
 				success: function (response) {
 					// Update the report container with the fetched data
@@ -126,14 +128,17 @@
 		$(document).on('click', '.student-course-update', function () {
 			var userId = $(this).data('user-id');
 			var courseId = $(this).data('course-id');
+			let entries = $('#entries').val();
 			var reportContainer = $(this).closest('tr').find('.wdm_course_report');
 
 			// Retrieve all checked checkboxes
 			var checkedCheckboxes = $('input[name="lesson_checkbox[]"]:checked');
+			var uncheckedCheckboxes = $('input[name="lesson_checkbox[]"]').not(':checked');
 
 
 			// Create an array to store the values of checked checkboxes
 			var checkedValues = [];
+			var uncheckedValues = [];
 
 			// Iterate over each checked checkbox and add its value to the array
 			checkedCheckboxes.each(function () {
@@ -141,17 +146,23 @@
 
 				if (userId == user_id) {
 					checkedValues.push($(this).val());
-					console.log($(this).val());
 				}
 			});
+			uncheckedCheckboxes.each(function () {
+				var user_id = $(this).data('user-id');
+
+				if (userId == user_id) {
+					uncheckedValues.push($(this).val());
+				}
+			})
 
 			if (userId && courseId) {
-				updateStudentCourseReport(reportContainer, userId, courseId, checkedValues);
+				updateStudentCourseReport(reportContainer, userId, courseId, checkedValues,uncheckedValues, entries);
 			} else {
 				alert('Please select a course.');
 			}
 		});
-		function updateStudentCourseReport(reportContainer, userId, courseId, checkedValues) {
+		function updateStudentCourseReport(reportContainer, userId, courseId, checkedValues, uncheckedValues, entries) {
 			// Perform actions when dashicon is clicked
 			$.ajax({
 				url: '/wp-admin/admin-ajax.php',
@@ -161,10 +172,12 @@
 					course_id: courseId,
 					user_id: userId,
 					checked_values: checkedValues,
+					unchecked_values: uncheckedValues,
+					entries: entries
 				},
 				beforeSend: function () {
 					// Display a loading spinner or message
-					reportContainer.html('Loading...');
+					reportContainer.html('<center><div class="d1"></div><div class="d2"></div><div class="d3"></div><div class="d4"></div><div class="d5"></div> </center > ');
 				},
 				success: function (response) {
 					// Update the report container with the fetched data
