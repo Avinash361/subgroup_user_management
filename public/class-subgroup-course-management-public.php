@@ -85,6 +85,7 @@ class Subgroup_Course_Management_Public
 
 		wp_enqueue_script($this->plugin_name, plugin_dir_url(__FILE__) . 'js/subgroup-course-management-public.js', array('jquery'), $this->version, false);
 	}
+	
 	function add_custom_group_registration_tab($tab_headers, $group_id)
 	{
 		// Add a new tab
@@ -102,33 +103,13 @@ class Subgroup_Course_Management_Public
 		$tab_contents[] = array(
 			'id' => 3,
 			'active' => false,
-			'template' => plugin_dir_path(dirname(__FILE__)) . 'templates/course-tab.template.php',
+			'template' => plugin_dir_path(dirname(__FILE__)) . 'public/templates/course-tab.template.php',
 		);
 
 		return $tab_contents;
 	}
 
-	public function register_shortcodes()
-	{
-		add_shortcode('wsdm_subgroup_dashboard', array($this, 'wsdm_subgroup_dashboard_callback'));
-	}
-
-	public function wsdm_subgroup_dashboard_callback($atts = [], $content = null)
-	{
-		$current_user = get_current_user_id();
-		$group_id =  $this->helper->get_the_group_id($current_user);
-
-		if (learndash_is_group_leader_user($current_user)) {
-
-			$content .= '<div id="table-top">';
-			$content .= '<div>' . $this->helper->selectCourse($group_id) . '</div>';
-			$content .= '<div>' . $this->helper->selectEntries($group_id) . '</div>';
-			$content .= '</div>';
-			$content .=  '<div id="report_container"><div>';
-		}
-
-		return $content;
-	}
+	
 
 	function ld_fetch_student_report()
 	{

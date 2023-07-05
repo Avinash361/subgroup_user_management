@@ -14,8 +14,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       learndash-subgroup-course-management
- * Plugin URI:        https://https://avinash.wisdmlabs.net/
- * Description:       This is a description of the plugin.
+ * Description:       learndash-subgroup-course-management is used for learndash group user course managed by Group Leader.
  * Version:           1.0.0
  * Author:            Avinash Jha
  * Author URI:        https://https://avinash.wisdmlabs.net/

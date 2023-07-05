@@ -44,9 +44,7 @@ class Subgroup_Course_Management_Helper_Function{
 							</tr>
 							<tr>
 							<td colspan="5">
-								<div class="flip wdm_course_report">
-									
-								</div>
+								<div class="flip wdm_course_report"></div>
 							</td>
 							</tr>';
 			}
